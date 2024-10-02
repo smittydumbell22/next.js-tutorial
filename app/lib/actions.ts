@@ -7,51 +7,50 @@ import { redirect } from 'next/navigation';
 
 // Define the schema for the form data
 const FormSchema = z.object({
-    id: z.string(),
+    id: z.string().optional(),  // Make id optional for creation
     customerId: z.string(),
     amount: z.coerce.number(),  // Coerce the amount to a number
     status: z.enum(['pending', 'paid']),
-    date: z.string(),
+    date: z.string().optional(), // Make date optional
 });
 
-// Omit `id` and `date` when creating a new invoice
-const CreateInvoice = FormSchema.omit({ id: true, date: true });
-
-// Define the `createInvoice` function
+// Function to create a new invoice
 export async function createInvoice(formData: FormData) {
-    // Parse and validate the formData using the CreateInvoice schema
+    // Extract values of form data
     const rawFormData = {
         customerId: formData.get('customerId'),
         amount: formData.get('amount'),
         status: formData.get('status'),
     };
+    
+    // Log the raw form data for testing
+    console.log('Raw Form Data:', rawFormData);
 
-    const { customerId, amount, status } = CreateInvoice.parse(rawFormData);
+    // Parse and validate the formData using the schema
+    const { customerId, amount, status } = FormSchema.omit({ id: true, date: true }).parse(rawFormData);
 
     // Convert amount to cents
     const amountInCents = amount * 100;
-    const date = new Date().toISOString().split('T')[0];
+    const date = new Date().toISOString().split('T')[0]; // Get current date
 
+    // Insert the new invoice into the database
     await sql`
         INSERT INTO invoices (customer_id, amount, status, date)
         VALUES (${customerId}, ${amountInCents}, ${status}, ${date})
     `;
 
+    // Revalidate the path and redirect to the invoices page
     revalidatePath('/dashboard/invoices');
     redirect('/dashboard/invoices');
 
-    // Log the formData and the amount in cents for testing
-    console.log('Raw Form Data:', rawFormData);
+    // Log the amount in cents for testing
     console.log('Amount in cents:', amountInCents);
 }
 
-// Omit `date` when updating an existing invoice
-const UpdateInvoice = FormSchema.omit({ date: true });
-
-// Define the `updateInvoice` function
+// Function to update an existing invoice
 export async function updateInvoice(id: string, formData: FormData) {
-    // Parse and validate the formData using the UpdateInvoice schema
-    const { customerId, amount, status } = UpdateInvoice.parse({
+    // Parse and validate the formData using the schema
+    const { customerId, amount, status } = FormSchema.omit({ date: true }).parse({
         customerId: formData.get('customerId'),
         amount: formData.get('amount'),
         status: formData.get('status'),
@@ -66,7 +65,7 @@ export async function updateInvoice(id: string, formData: FormData) {
         WHERE id = ${id}
     `;
 
-    // Revalidate the path and redirect
+    // Revalidate the path and redirect to the invoices page
     revalidatePath('/dashboard/invoices');
     redirect('/dashboard/invoices');
 
