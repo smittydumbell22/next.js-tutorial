@@ -14,20 +14,19 @@ const FormSchema = z.object({
     date: z.string().optional(), // Make date optional
 });
 
+const CreateInvoice = FormSchema.omit({ id: true, date: true });
+
 // Function to create a new invoice
 export async function createInvoice(formData: FormData) {
-    // Extract values of form data
-    const rawFormData = {
+    // Extract values of form data and validate
+    const { customerId, amount, status } = CreateInvoice.parse({
         customerId: formData.get('customerId'),
         amount: formData.get('amount'),
         status: formData.get('status'),
-    };
-    
-    // Log the raw form data for testing
-    console.log('Raw Form Data:', rawFormData);
+    });
 
-    // Parse and validate the formData using the schema
-    const { customerId, amount, status } = FormSchema.omit({ id: true, date: true }).parse(rawFormData);
+    // Log the form data for testing
+    console.log('Form Data:', { customerId, amount, status });
 
     // Convert amount to cents
     const amountInCents = amount * 100;
