@@ -19,67 +19,77 @@ const CreateInvoice = FormSchema.omit({ id: true, date: true });
 
 // Function to create a new invoice
 export async function createInvoice(formData: FormData) {
-    // Extract and validate the form data using Zod
-    const { customerId, amount, status } = CreateInvoice.parse({
-        customerId: formData.get('customerId'),
-        amount: formData.get('amount'),
-        status: formData.get('status'),
-    });
+    try {
+        // Extract and validate the form data using Zod
+        const { customerId, amount, status } = CreateInvoice.parse({
+            customerId: formData.get('customerId'),
+            amount: formData.get('amount'),
+            status: formData.get('status'),
+        });
 
-    // Convert the amount to cents for database storage
-    const amountInCents = amount * 100;
-    const date = new Date().toISOString().split('T')[0]; // Current date
+        // Convert the amount to cents for database storage
+        const amountInCents = amount * 100;
+        const date = new Date().toISOString().split('T')[0]; // Current date
 
-    // Insert the new invoice into the database
-    await sql`
-        INSERT INTO invoices (customer_id, amount, status, date)
-        VALUES (${customerId}, ${amountInCents}, ${status}, ${date})
-    `;
+        // Insert the new invoice into the database
+        await sql`
+            INSERT INTO invoices (customer_id, amount, status, date)
+            VALUES (${customerId}, ${amountInCents}, ${status}, ${date})
+        `;
 
-    // Revalidate the invoices path and redirect
-    revalidatePath('/dashboard/invoices');
-    redirect('/dashboard/invoices');
+        // Revalidate the invoices path and redirect
+        revalidatePath('/dashboard/invoices');
+        redirect('/dashboard/invoices');
 
-    console.log('Created invoice:', { customerId, amountInCents, status });
+        console.log('Created invoice:', { customerId, amountInCents, status });
+    } catch (error) {
+        console.error('Error creating invoice:', error);
+        return { message: 'Database Error: Failed to Create Invoice.' };
+    }
 }
 
 // Function to update an existing invoice
 export async function updateInvoice(id: string, formData: FormData) {
-    // Use Zod to parse and validate the form data, omitting 'date' field for updates
-    const { customerId, amount, status } = FormSchema.omit({ date: true }).parse({
-        customerId: formData.get('customerId'),
-        amount: formData.get('amount'),
-        status: formData.get('status'),
-    });
+    try {
+        // Use Zod to parse and validate the form data, omitting 'date' field for updates
+        const { customerId, amount, status } = FormSchema.omit({ date: true }).parse({
+            customerId: formData.get('customerId'),
+            amount: formData.get('amount'),
+            status: formData.get('status'),
+        });
 
-    // Convert amount to cents for consistency
-    const amountInCents = amount * 100;
+        // Convert amount to cents for consistency
+        const amountInCents = amount * 100;
 
-    // Execute the SQL update query
-    await sql`
-        UPDATE invoices
-        SET customer_id = ${customerId}, amount = ${amountInCents}, status = ${status}
-        WHERE id = ${id}
-    `;
+        // Execute the SQL update query
+        await sql`
+            UPDATE invoices
+            SET customer_id = ${customerId}, amount = ${amountInCents}, status = ${status}
+            WHERE id = ${id}
+        `;
 
-    // Revalidate and redirect to the invoices page
-    revalidatePath('/dashboard/invoices');
-    redirect('/dashboard/invoices');
+        // Revalidate and redirect to the invoices page
+        revalidatePath('/dashboard/invoices');
+        redirect('/dashboard/invoices');
 
-    console.log('Updated invoice:', { id, customerId, amountInCents, status });
+        console.log('Updated invoice:', { id, customerId, amountInCents, status });
+    } catch (error) {
+        console.error('Error updating invoice:', error);
+        return { message: 'Database Error: Failed to Update Invoice.' };
+    }
 }
 
 // Function to delete an invoice
 export async function deleteInvoice(id: string) {
-    // Execute the SQL delete query
-    await sql`
-        DELETE FROM invoices
-        WHERE id = ${id}
-    `;
-
-    // Revalidate and redirect to the invoices page
-    revalidatePath('/dashboard/invoices');
-    redirect('/dashboard/invoices');
-
-    console.log('Deleted invoice with id:', id);
+    try {
+        await sql`
+            DELETE FROM invoices
+            WHERE id = ${id}
+        `;
+        revalidatePath('/dashboard/invoices');
+        return { message: 'Deleted Invoice' };
+    } catch (error) {
+        console.error('Error deleting invoice:', error);
+        throw error; // Rethrow the error to trigger the Error Boundary
+    }
 }

@@ -9,12 +9,10 @@ import {
 } from './definitions';
 import { formatCurrency } from './utils';
 
-
 export async function fetchRevenue() {
   try {
     // Artificially delay a response for demo purposes.
     // Don't do this in production :)
-
     console.log('Fetching revenue data...');
     await new Promise((resolve) => setTimeout(resolve, 3000));
 
@@ -86,6 +84,7 @@ export async function fetchCardData() {
 }
 
 const ITEMS_PER_PAGE = 6;
+
 export async function fetchFilteredInvoices(
   query: string,
   currentPage: number,
@@ -111,8 +110,7 @@ export async function fetchFilteredInvoices(
         invoices.date::text ILIKE ${`%${query}%`} OR
         invoices.status ILIKE ${`%${query}%`}
       ORDER BY invoices.date DESC
-      LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
-    `;
+      LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}`;
 
     return invoices.rows;
   } catch (error) {
@@ -131,8 +129,7 @@ export async function fetchInvoicesPages(query: string) {
       customers.email ILIKE ${`%${query}%`} OR
       invoices.amount::text ILIKE ${`%${query}%`} OR
       invoices.date::text ILIKE ${`%${query}%`} OR
-      invoices.status ILIKE ${`%${query}%`}
-  `;
+      invoices.status ILIKE ${`%${query}%`}`;
 
     const totalPages = Math.ceil(Number(count.rows[0].count) / ITEMS_PER_PAGE);
     return totalPages;
@@ -151,16 +148,16 @@ export async function fetchInvoiceById(id: string) {
         invoices.amount,
         invoices.status
       FROM invoices
-      WHERE invoices.id = ${id};
-    `;
+      WHERE invoices.id = ${id};`;
 
+    console.log(data.rows); // Log the retrieved rows to check if the invoice was found
     const invoice = data.rows.map((invoice) => ({
       ...invoice,
       // Convert amount from cents to dollars
       amount: invoice.amount / 100,
     }));
 
-    return invoice[0];
+    return invoice[0]; // Return the first invoice, if any
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to fetch invoice.');
@@ -174,8 +171,7 @@ export async function fetchCustomers() {
         id,
         name
       FROM customers
-      ORDER BY name ASC
-    `;
+      ORDER BY name ASC`;
 
     const customers = data.rows;
     return customers;
@@ -202,8 +198,7 @@ export async function fetchFilteredCustomers(query: string) {
 		  customers.name ILIKE ${`%${query}%`} OR
         customers.email ILIKE ${`%${query}%`}
 		GROUP BY customers.id, customers.name, customers.email, customers.image_url
-		ORDER BY customers.name ASC
-	  `;
+		ORDER BY customers.name ASC`;
 
     const customers = data.rows.map((customer) => ({
       ...customer,
