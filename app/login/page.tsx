@@ -1,6 +1,13 @@
 import AcmeLogo from '@/app/ui/acme-logo';
 import LoginForm from '@/app/ui/login-form';
- 
+import { Metadata } from 'next';
+
+// Export metadata specific to the login page
+export const metadata: Metadata = {
+  title: 'Login',  // This will display as "Login | Acme Dashboard"
+  description: 'Login to the Acme Dashboard to access your account and manage your data.',  // Optional: add a description
+};
+
 export default function LoginPage() {
   return (
     <main className="flex items-center justify-center md:h-screen">
