@@ -1,4 +1,12 @@
 'use server';
+export type State = {
+    errors?: {
+        customerId?: string[];
+        amount?: string[];
+        status?: string[];
+    };
+    message?: string | null;
+};
 
 import { z } from 'zod';
 import { sql } from '@vercel/postgres';
@@ -8,26 +16,41 @@ import { redirect } from 'next/navigation';
 // Define the schema for form data validation
 const FormSchema = z.object({
     id: z.string().optional(),   // 'id' is optional for creation or editing
-    customerId: z.string(),      // 'customerId' is required
-    amount: z.coerce.number(),   // Coerce 'amount' to a number
-    status: z.enum(['pending', 'paid']),   // Restrict 'status' to two possible values
-    date: z.string().optional(), // 'date' is optional
+    customerId: z.string({
+        invalid_type_error: 'Please select a customer.',
+
+    }),      // 'customerId' is required
+
+    amount: z.coerce.number()
+        .gt(0, { message: 'Please enter an amount greater than $0.' }),   // Coerce 'amount' to a number
+
+    status: z.enum(['pending', 'paid'], {
+        invalid_type_error: 'Please select an invoice status.',
+    }),   // Restrict 'status' to two possible values
+    date: z.string(), // 'date' is optional
 });
 
 // Schema for creating an invoice (omit 'id' and 'date')
 const CreateInvoice = FormSchema.omit({ id: true, date: true });
 
 // Function to create a new invoice
-export async function createInvoice(formData: FormData) {
+export async function createInvoice(prevState: State, formData: FormData) {
     try {
         // Extract and validate the form data using Zod
-        const { customerId, amount, status } = CreateInvoice.parse({
+        const validatedFields = CreateInvoice.safeParse({
             customerId: formData.get('customerId'),
             amount: formData.get('amount'),
             status: formData.get('status'),
         });
+        if (!validatedFields.success) {
+            return {
+                errors: validatedFields.error.flatten().fieldErrors,
+                message: 'Missing Fields. Failed to Create Invoice.',
+            };
+        }
 
         // Convert the amount to cents for database storage
+        const { customerId, amount, status } = validatedFields.data;
         const amountInCents = amount * 100;
         const date = new Date().toISOString().split('T')[0]; // Current date
 
@@ -46,6 +69,8 @@ export async function createInvoice(formData: FormData) {
         console.error('Error creating invoice:', error);
         return { message: 'Database Error: Failed to Create Invoice.' };
     }
+    revalidatePath('/dashboard/invoices');
+    redirect('/dashboard/invoices');
 }
 
 // Function to update an existing invoice
